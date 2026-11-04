@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  PATRON
+  LIBRARIAN
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  role      Role     @default(PATRON)
+  createdAt DateTime @default(now())
+  reviews   Review[]
+}
+
+model Genre {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  books Book[]
+}
+
+model Book {
+  id            Int      @id @default(autoincrement())
+  title         String
+  author        String
+  isbn          String?  @unique
+  publishedYear Int?
+  copies        Int      @default(1)
+  genreId       Int
+  genre         Genre    @relation(fields: [genreId], references: [id])
+  reviews       Review[]
+  createdAt     DateTime @default(now())
+
+  @@index([genreId])
+}
+
+// Stretch task
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String?
+  bookId    Int
+  userId    Int
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, userId])
+}
