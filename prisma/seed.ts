@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -34,6 +35,35 @@ async function main() {
   await prisma.review.deleteMany();
   await prisma.book.deleteMany();
   await prisma.genre.deleteMany();
+  await prisma.user.deleteMany();
+
+  // Seed default librarian account
+  const hashedPassword = await bcrypt.hash('Librarian123!', 10);
+  const librarian = await prisma.user.upsert({
+    where: { email: 'librarian@library.com' },
+    update: {},
+    create: {
+      email: 'librarian@library.com',
+      name: 'Head Librarian',
+      password: hashedPassword,
+      role: Role.LIBRARIAN,
+    },
+  });
+  console.log(`Seeded librarian account: ${librarian.email}`);
+
+  // Seed default patron account for testing
+  const patronPassword = await bcrypt.hash('Patron123!', 10);
+  const patron = await prisma.user.upsert({
+    where: { email: 'patron@library.com' },
+    update: {},
+    create: {
+      email: 'patron@library.com',
+      name: 'Book Lover',
+      password: patronPassword,
+      role: Role.PATRON,
+    },
+  });
+  console.log(`Seeded patron account: ${patron.email}`);
 
   for (const [genreName, books] of Object.entries(catalog)) {
     await prisma.genre.create({
@@ -53,7 +83,8 @@ async function main() {
 
   const genres = await prisma.genre.count();
   const books = await prisma.book.count();
-  console.log(`Seeded ${genres} genres and ${books} books`);
+  const users = await prisma.user.count();
+  console.log(`Seeded ${genres} genres, ${books} books, and ${users} users`);
 }
 
 main()
